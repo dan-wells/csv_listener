@@ -1,10 +1,22 @@
-import tkinter as tk
 import csv
 import sys
-#from play_wav import play_wav
-import pyaudio
 import wave
-from tkinter import filedialog
+import os
+if sys.version_info[0] == 3:
+    import tkinter as tk
+    from tkinter import filedialog
+elif sys.version_info[0] == 2:
+    import Tkinter as tk
+    import tkFileDialog as filedialog
+if os.name == 'nt':
+    import winsound
+elif os.name == 'posix':
+    try:
+        import pyaudio
+    except ImportError as impe:
+        sys.stderr.write(str(impe) + '\n' \
+        'Module pyaudio not available, audio playback will not work on Linux.\n' + \
+        'Audio playback available on Windows through standard library module winsound.\n')
 
 script, csv_file = sys.argv
 
@@ -102,7 +114,7 @@ class CsvListener(tk.Tk):
         def load_file():
             load_fn = filedialog.askopenfilename(initialdir=".", title="Select CSV file")
             print(load_fn)
-        load_button = tk.Button(frame3, text="Load file", command=load_file)
+        load_button = tk.Button(frame3, text="Load file", command=load_file, state=tk.DISABLED)
         load_button.pack(anchor=tk.NW)
         
         def save_file():
@@ -110,7 +122,7 @@ class CsvListener(tk.Tk):
             with open(save_fn, 'w') as outf:
                 if 'Exclude' not in csv_header:
                     csv_header.append('Exclude')
-                writer = csv.DictWriter(outf, fieldnames=csv_header)
+                writer = csv.DictWriter(outf, fieldnames=csv_header, lineterminator='\n')
                 writer.writeheader()
                 for row in csv_rows:
                     row['Exclude'] = self.exclude_vars[row['File Name']].get()
@@ -119,7 +131,7 @@ class CsvListener(tk.Tk):
         save_button.pack(anchor=tk.NW)
 
         master_frame.update_idletasks()
-        print(f'master_frame: width {master_frame.winfo_width()}, height {master_frame.winfo_height()}')
+        #print(f'master_frame: width {master_frame.winfo_width()}, height {master_frame.winfo_height()}')
         self.minsize(master_frame.winfo_width(), master_frame.winfo_height())
 
     def play_wav(self, wav_filename, chunk_size=1024):
@@ -127,39 +139,41 @@ class CsvListener(tk.Tk):
         Play (on the attached system sound device) the WAV file
         named wav_filename.
         '''
+        if os.name == 'nt':
+            winsound.PlaySound(wav_filename, winsound.SND_ASYNC)
+        else:
+            try:
+                print('Trying to play file ' + wav_filename)
+                wf = wave.open(wav_filename, 'rb')
+            except IOError as ioe:
+                sys.stderr.write('IOError on file ' + wav_filename + '\n' + \
+                str(ioe) + '. Skipping.\n')
+                return
+            except EOFError as eofe:
+                sys.stderr.write('EOFError on file ' + wav_filename + '\n' + \
+                str(eofe) + '. Skipping.\n')
+                return
 
-        try:
-            print('Trying to play file ' + wav_filename)
-            wf = wave.open(wav_filename, 'rb')
-        except IOError as ioe:
-            sys.stderr.write('IOError on file ' + wav_filename + '\n' + \
-            str(ioe) + '. Skipping.\n')
-            return
-        except EOFError as eofe:
-            sys.stderr.write('EOFError on file ' + wav_filename + '\n' + \
-            str(eofe) + '. Skipping.\n')
-            return
+            # Instantiate PyAudio.
+            p = pyaudio.PyAudio()
 
-        # Instantiate PyAudio.
-        p = pyaudio.PyAudio()
+            # Open stream.
+            stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True)
 
-        # Open stream.
-        stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True)
-
-        data = wf.readframes(chunk_size)
-        while len(data) > 0:
-            stream.write(data)
             data = wf.readframes(chunk_size)
+            while len(data) > 0:
+                stream.write(data)
+                data = wf.readframes(chunk_size)
 
-        # Stop stream.
-        stream.stop_stream()
-        stream.close()
+            # Stop stream.
+            stream.stop_stream()
+            stream.close()
 
-        # Close PyAudio.
-        p.terminate()
+            # Close PyAudio.
+            p.terminate()
 
 if __name__ == "__main__":
     csv_listener = CsvListener()

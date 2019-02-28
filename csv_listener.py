@@ -18,14 +18,21 @@ elif os.name == 'posix':
         'Module pyaudio not available, audio playback will not work on Linux.\n' + \
         'Audio playback available on Windows through standard library module winsound.\n')
 
+#script, csv_file, out_file  = sys.argv
 script, csv_file = sys.argv
 
 class CsvListener(tk.Tk):
-    def __init__(self, title="CSV Listener - {0}".format(csv_file), *args, **kwargs):
+    def __init__(self, csv_file, save_fn=None, win_title="CSV Listener", *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
-        self.title(title)
-        #self.geometry('800x800')
+        self.win_title = win_title
+        self.csv_file = csv_file
+        self.save_fn = save_fn
+
+        # set title on root window
+        self.title("{0} - {1}".format(self.win_title, self.csv_file))
+        # make floating window
+        self.attributes('-type', 'utility')
 
         with open(csv_file) as inf:
             reader = csv.DictReader(inf)
@@ -117,9 +124,8 @@ class CsvListener(tk.Tk):
         load_button = tk.Button(frame3, text="Load file", command=load_file, state=tk.DISABLED)
         load_button.pack(anchor=tk.NW)
         
-        def save_file():
-            save_fn = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
-            with open(save_fn, 'w') as outf:
+        def save_file(window=None):
+            with open(self.save_fn, 'w') as outf:
                 if 'Exclude' not in csv_header:
                     csv_header.append('Exclude')
                 writer = csv.DictWriter(outf, fieldnames=csv_header, lineterminator='\n')
@@ -127,56 +133,75 @@ class CsvListener(tk.Tk):
                 for row in csv_rows:
                     row['Exclude'] = self.exclude_vars[row['File Name']].get()
                     writer.writerow(row)
-        save_button = tk.Button(frame3, text="Save file", command=save_file)
+            if window is not None:
+                window.destroy()
+        def save_dialog():
+            if self.save_fn is None:
+                self.save_fn = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
+                save_file()
+            else:
+                # popup to confirm saving over named save_fn
+                save_confirm = tk.Toplevel()
+                save_confirm.wm_title("Confirm save")
+                save_confirm.attributes('-type', 'dialog')
+                l = tk.Label(save_confirm, text="Save to {0}?".format(self.save_fn))
+                l.pack()
+                button_frame = tk.Frame(save_confirm)
+                button_frame.pack()
+                y_btn = tk.Button(button_frame, text="Yes", command=lambda x=save_confirm:save_file(x))
+                y_btn.pack(side=tk.LEFT)
+                n_btn = tk.Button(button_frame, text="No", command=save_confirm.destroy)
+                n_btn.pack(side=tk.LEFT)
+        save_button = tk.Button(frame3, text="Save file", command=save_dialog)
         save_button.pack(anchor=tk.NW)
 
+        # make sure window shows all frames
         master_frame.update_idletasks()
-        #print(f'master_frame: width {master_frame.winfo_width()}, height {master_frame.winfo_height()}')
         self.minsize(master_frame.winfo_width(), master_frame.winfo_height())
 
-    def play_wav(self, wav_filename, chunk_size=1024):
+    def play_wav(self, wav_fn, chunk_size=1024):
         '''
         Play (on the attached system sound device) the WAV file
-        named wav_filename.
+        named wav_fn.
         '''
+        # windows playback through winsound in standard library
         if os.name == 'nt':
-            winsound.PlaySound(wav_filename, winsound.SND_ASYNC)
-        else:
             try:
-                print('Trying to play file ' + wav_filename)
-                wf = wave.open(wav_filename, 'rb')
+                winsound.PlaySound(wav_fn, winsound.SND_ASYNC)
             except IOError as ioe:
-                sys.stderr.write('IOError on file ' + wav_filename + '\n' + \
+                sys.stderr.write('IOError on file ' + wav_fn + '\n' + \
                 str(ioe) + '. Skipping.\n')
                 return
-            except EOFError as eofe:
-                sys.stderr.write('EOFError on file ' + wav_filename + '\n' + \
-                str(eofe) + '. Skipping.\n')
+        # or stereotypically obnoxious linux audio solution
+        elif os.name == 'posix':
+            try:
+                print('Trying to play file ' + wav_fn)
+                wf = wave.open(wav_fn, 'rb')
+            except IOError as ioe:
+                sys.stderr.write('IOError on file ' + wav_fn + '\n' + \
+                str(ioe) + '. Skipping.\n')
                 return
-
             # Instantiate PyAudio.
             p = pyaudio.PyAudio()
-
             # Open stream.
             stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
                 channels=wf.getnchannels(),
                 rate=wf.getframerate(),
                 output=True)
-
             data = wf.readframes(chunk_size)
             while len(data) > 0:
                 stream.write(data)
                 data = wf.readframes(chunk_size)
-
             # Stop stream.
             stream.stop_stream()
             stream.close()
-
             # Close PyAudio.
             p.terminate()
 
 if __name__ == "__main__":
-    csv_listener = CsvListener()
+    csv_listener = CsvListener(csv_file)
+    #csv_listener = CsvListener(csv_file, save_fn=out_file)
+
     #csv_listener.after(5000, lambda x=csv_listener.exclude_vars:print([i for i in x if x[i].get() == 1]))
     #csv_listener.after(6000, lambda x=csv_listener.exclude_vars:print([i for i in x if x[i].get() == 0]))
     csv_listener.mainloop()

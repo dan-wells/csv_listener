@@ -87,7 +87,7 @@ class CsvListener(tk.Tk):
         frame3 = tk.Frame(master_frame)
         frame3.pack(anchor=tk.NW, fill=tk.X)
 
-        load_button = tk.Button(frame3, text="Load file", command=self.load_file, state=tk.DISABLED)
+        load_button = tk.Button(frame3, text="Load file", command=lambda x=frame1, y=frame:self.load_file(x, y), state=tk.DISABLED)
         load_button.pack(anchor=tk.NW)
         
         save_button = tk.Button(frame3, text="Save file", command=self.save_dialog)
@@ -160,9 +160,15 @@ class CsvListener(tk.Tk):
                                     command=lambda x=row[self.fn_file_name]: self.play_wav(x))
             play_button.pack(anchor=tk.NW, side=tk.LEFT)
 
-    def load_file(self):
+    def load_file(self, header_frame, rows_frame):
         load_fn = filedialog.askopenfilename(initialdir=".", title="Select CSV file")
         pass
+        #self.csv_file = load_fn
+        #self.read_csv()
+        #header_frame.destroy()
+        #rows_frame.destroy()
+        #self.draw_header(header_frame)
+        #self.draw_rows(rows_frame)
 
     def save_file(self, window=None):
         with open(self.csv_out, 'w') as outf:

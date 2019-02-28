@@ -116,7 +116,9 @@ class CsvListener(tk.Tk):
                 # concatenate audio paths
                 if self.audio_path is not None:
                     wav_file = os.path.join(self.audio_path, row[self.fn_file_name])
-                    row[self.fn_file_name] = wav_file 
+                    row['audio_path'] = wav_file 
+                else:
+                    row['audio_path'] = row[self.fn_file_name]
                 # convert existing exclude column to bools
                 if self.fn_exclude in self.csv_header:
                     if row[self.fn_exclude] == 'True':
@@ -155,7 +157,7 @@ class CsvListener(tk.Tk):
             exclude_var = tk.BooleanVar()
             self.exclude_vars[row[self.fn_file_name]] = exclude_var
             exclude_button = tk.Checkbutton(full_row, padx=7, pady=7, relief=tk.RIDGE, variable=exclude_var, width=3)
-            for c, col in enumerate(row):
+            for col in self.csv_header:
                 if col == self.fn_exclude:
                     exclude_button.pack(anchor=tk.NW, side=tk.LEFT)
                     if row[self.fn_exclude]:
@@ -166,7 +168,7 @@ class CsvListener(tk.Tk):
             if self.fn_exclude not in self.csv_header:
                 exclude_button.pack(anchor=tk.NW, side=tk.LEFT)
             play_button = tk.Button(full_row, padx=7, pady=7, relief=tk.RIDGE, text='Play', 
-                                    command=lambda x=row[self.fn_file_name]: self.play_wav(x))
+                                    command=lambda x=row['audio_path']: self.play_wav(x))
             play_button.pack(anchor=tk.NW, side=tk.LEFT)
 
     def load_file(self, header_frame, rows_frame):
@@ -193,7 +195,7 @@ class CsvListener(tk.Tk):
         with open(self.csv_out, 'w') as outf:
             if self.fn_exclude not in self.csv_header:
                 self.csv_header.append(self.fn_exclude)
-            writer = csv.DictWriter(outf, fieldnames=self.csv_header, lineterminator='\n')
+            writer = csv.DictWriter(outf, fieldnames=self.csv_header, extrasaction='ignore', lineterminator='\n')
             writer.writeheader()
             for row in self.csv_rows:
                 row[self.fn_exclude] = self.exclude_vars[row[self.fn_file_name]].get()

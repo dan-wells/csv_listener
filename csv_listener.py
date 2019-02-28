@@ -41,8 +41,8 @@ class CsvListener(tk.Tk):
 
         # set title on root window
         self.title("{0} - {1}".format(self.win_title, self.csv_file))
-        # force floating window
-        self.attributes('-type', 'utility')
+        # force floating window (unix only)
+        #self.attributes('-type', 'utility')
 
         master_frame = tk.Frame(self)
         master_frame.pack(anchor=tk.NW)

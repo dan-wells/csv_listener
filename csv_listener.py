@@ -1,8 +1,10 @@
 import argparse
 import csv
+import os
 import sys
 import wave
-import os
+
+# gui toolkit
 if sys.version_info[0] == 3:
     import tkinter as tk
     from tkinter import filedialog
@@ -11,6 +13,8 @@ elif sys.version_info[0] == 2:
     import Tkinter as tk
     import tkFileDialog as filedialog
     import tkMessageBox as messagebox
+
+# audio modules
 if os.name == 'nt':
     import winsound
 elif os.name == 'posix':
@@ -21,11 +25,10 @@ elif os.name == 'posix':
         'Module pyaudio not available, audio playback will not work on Linux.\n' + \
         'Audio playback available on Windows through standard library module winsound.\n')
 
-#script, csv_file, out_file  = sys.argv
-#script, csv_file = sys.argv
-
 class CsvListener(tk.Tk):
-    def __init__(self, csv_file, csv_out=None, disp_rows=10, fn_exclude='Exclude', fn_file_name='File Name', audio_path=None, win_title="CSV Listener", *args, **kwargs):
+    def __init__(self, csv_file, csv_out=None, disp_rows=10, 
+                 fn_exclude='Exclude', fn_file_name='File Name', 
+                 audio_path=None, win_title="CSV Listener", *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.win_title = win_title
@@ -38,7 +41,7 @@ class CsvListener(tk.Tk):
 
         # set title on root window
         self.title("{0} - {1}".format(self.win_title, self.csv_file))
-        # make floating window
+        # force floating window
         self.attributes('-type', 'utility')
 
         master_frame = tk.Frame(self)
@@ -196,38 +199,28 @@ class CsvListener(tk.Tk):
                 row[self.fn_exclude] = self.exclude_vars[row[self.fn_file_name]].get()
                 writer.writerow(row)
 
-    def play_wav(self, wav_fn, chunk_size=1024):
+    def play_wav(self, wav_fn):
+        if not os.path.exists(wav_fn):
+            messagebox.showwarning("Warning: File not found", "Cannot find file {0}".format(wav_fn))
+            return
         # windows playback through winsound in standard library
         if os.name == 'nt':
-            try:
-                winsound.PlaySound(wav_fn, winsound.SND_ASYNC)
-            except IOError as ioe:
-                sys.stderr.write('IOError on file ' + wav_fn + '\n' + \
-                str(ioe) + '. Skipping.\n')
-                return
+            winsound.PlaySound(wav_fn, winsound.SND_ASYNC)
         # or stereotypically obnoxious linux audio solution
         elif os.name == 'posix':
-            try:
-                wf = wave.open(wav_fn, 'rb')
-            except IOError as ioe:
-                sys.stderr.write('IOError on file ' + wav_fn + '\n' + \
-                str(ioe) + '. Skipping.\n')
-                return
-            # Instantiate PyAudio.
+            wf = wave.open(wav_fn, 'rb')
             p = pyaudio.PyAudio()
-            # Open stream.
             stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
                 channels=wf.getnchannels(),
                 rate=wf.getframerate(),
                 output=True)
+            chunk_size = 1024
             data = wf.readframes(chunk_size)
             while len(data) > 0:
                 stream.write(data)
                 data = wf.readframes(chunk_size)
-            # Stop stream.
             stream.stop_stream()
             stream.close()
-            # Close PyAudio.
             p.terminate()
 
 if __name__ == "__main__":

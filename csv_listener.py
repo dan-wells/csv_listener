@@ -1,3 +1,4 @@
+import argparse
 import csv
 import sys
 import wave
@@ -19,7 +20,7 @@ elif os.name == 'posix':
         'Audio playback available on Windows through standard library module winsound.\n')
 
 #script, csv_file, out_file  = sys.argv
-script, csv_file = sys.argv
+#script, csv_file = sys.argv
 
 class CsvListener(tk.Tk):
     def __init__(self, csv_file, save_fn=None, win_title="CSV Listener", *args, **kwargs):
@@ -135,10 +136,12 @@ class CsvListener(tk.Tk):
                     writer.writerow(row)
             if window is not None:
                 window.destroy()
+        def save_as(window=None):
+            self.save_fn = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
+            save_file(window)
         def save_dialog():
             if self.save_fn is None:
-                self.save_fn = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
-                save_file()
+                save_as()
             else:
                 # popup to confirm saving over named save_fn
                 save_confirm = tk.Toplevel()
@@ -148,10 +151,12 @@ class CsvListener(tk.Tk):
                 l.pack()
                 button_frame = tk.Frame(save_confirm)
                 button_frame.pack()
-                y_btn = tk.Button(button_frame, text="Yes", command=lambda x=save_confirm:save_file(x))
-                y_btn.pack(side=tk.LEFT)
-                n_btn = tk.Button(button_frame, text="No", command=save_confirm.destroy)
-                n_btn.pack(side=tk.LEFT)
+                y_btn = tk.Button(button_frame, text="Save", command=lambda x=save_confirm:save_file(x))
+                y_btn.pack()
+                s_btn = tk.Button(button_frame, text="Save As", command=lambda x=save_confirm:save_as(x))
+                s_btn.pack()
+                n_btn = tk.Button(button_frame, text="Cancel", command=save_confirm.destroy)
+                n_btn.pack()
         save_button = tk.Button(frame3, text="Save file", command=save_dialog)
         save_button.pack(anchor=tk.NW)
 
@@ -199,7 +204,12 @@ class CsvListener(tk.Tk):
             p.terminate()
 
 if __name__ == "__main__":
-    csv_listener = CsvListener(csv_file)
+    parser = argparse.ArgumentParser(description="GUI tool for auditing lists of audio files.")
+    parser.add_argument('csv_file', help="CSV file listing audio files to audit")
+    parser.add_argument('--csv_out', help="Output filename for modified CSV", required=False, default=None)
+    args = parser.parse_args()
+
+    csv_listener = CsvListener(args.csv_file, save_fn=args.csv_out)
     #csv_listener = CsvListener(csv_file, save_fn=out_file)
 
     #csv_listener.after(5000, lambda x=csv_listener.exclude_vars:print([i for i in x if x[i].get() == 1]))

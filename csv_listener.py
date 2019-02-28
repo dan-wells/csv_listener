@@ -6,9 +6,11 @@ import os
 if sys.version_info[0] == 3:
     import tkinter as tk
     from tkinter import filedialog
+    from tkinter import messagebox
 elif sys.version_info[0] == 2:
     import Tkinter as tk
     import tkFileDialog as filedialog
+    import tkMessageBox as messagebox
 if os.name == 'nt':
     import winsound
 elif os.name == 'posix':
@@ -87,12 +89,16 @@ class CsvListener(tk.Tk):
         frame3 = tk.Frame(master_frame)
         frame3.pack(anchor=tk.NW, fill=tk.X)
 
-        load_button = tk.Button(frame3, text="Load file", command=lambda x=frame1, y=frame:self.load_file(x, y), state=tk.DISABLED)
-        load_button.pack(anchor=tk.NW)
-        
-        save_button = tk.Button(frame3, text="Save file", command=self.save_dialog)
-        save_button.pack(anchor=tk.NW)
+        save_button = tk.Button(frame3, text="Save", command=self.save_dialog)
+        save_button.pack(anchor=tk.NW, side=tk.LEFT)
 
+        save_as_button = tk.Button(frame3, text="Save As", command=lambda x=True: self.save_dialog(x))
+        save_as_button.pack(anchor=tk.NW, side=tk.LEFT)
+
+        # TODO work out how to clear frames and load a new file
+        load_button = tk.Button(frame3, text="Load", command=lambda x=frame1, y=frame:self.load_file(x, y), state=tk.DISABLED)
+        load_button.pack(anchor=tk.NW, side=tk.LEFT)
+        
         # make sure window shows all frames
         master_frame.update_idletasks()
         self.minsize(master_frame.winfo_width(), master_frame.winfo_height())
@@ -162,15 +168,25 @@ class CsvListener(tk.Tk):
 
     def load_file(self, header_frame, rows_frame):
         load_fn = filedialog.askopenfilename(initialdir=".", title="Select CSV file")
-        pass
         #self.csv_file = load_fn
         #self.read_csv()
         #header_frame.destroy()
         #rows_frame.destroy()
         #self.draw_header(header_frame)
         #self.draw_rows(rows_frame)
+        pass
 
-    def save_file(self, window=None):
+    def save_dialog(self, do_save_as=False):
+        if (self.csv_out is None) or (do_save_as == True):
+            self.csv_out = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
+            if not self.csv_out:
+                self.csv_out = None
+            else:
+                self.save_file()
+        elif messagebox.askokcancel(title="Save", message="Save to {0}?".format(self.csv_out)):
+            self.save_file()
+
+    def save_file(self):
         with open(self.csv_out, 'w') as outf:
             if self.fn_exclude not in self.csv_header:
                 self.csv_header.append(self.fn_exclude)
@@ -179,41 +195,8 @@ class CsvListener(tk.Tk):
             for row in self.csv_rows:
                 row[self.fn_exclude] = self.exclude_vars[row[self.fn_file_name]].get()
                 writer.writerow(row)
-        if window is not None:
-            window.destroy()
-
-    def save_as(self, window=None):
-        self.csv_out = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
-        # hitting cancel returns an empty tuple, handle that
-        if self.csv_out:
-            self.save_file(window)
-        else:
-            self.csv_out = None
-
-    def save_dialog(self):
-        if self.csv_out is None:
-            self.save_as()
-        else:
-            # popup to confirm saving over named csv_out
-            save_confirm = tk.Toplevel()
-            save_confirm.wm_title("Confirm save")
-            save_confirm.attributes('-type', 'dialog')
-            l = tk.Label(save_confirm, text="Save to {0}?".format(self.csv_out))
-            l.pack()
-            button_frame = tk.Frame(save_confirm)
-            button_frame.pack()
-            y_btn = tk.Button(button_frame, text="Save", command=lambda x=save_confirm:self.save_file(x))
-            y_btn.pack(side=tk.LEFT)
-            s_btn = tk.Button(button_frame, text="Save As", command=lambda x=save_confirm:self.save_as(x))
-            s_btn.pack(side=tk.LEFT)
-            n_btn = tk.Button(button_frame, text="Cancel", command=save_confirm.destroy)
-            n_btn.pack(side=tk.LEFT)
 
     def play_wav(self, wav_fn, chunk_size=1024):
-        '''
-        Play (on the attached system sound device) the WAV file
-        named wav_fn.
-        '''
         # windows playback through winsound in standard library
         if os.name == 'nt':
             try:
@@ -225,7 +208,6 @@ class CsvListener(tk.Tk):
         # or stereotypically obnoxious linux audio solution
         elif os.name == 'posix':
             try:
-                print('Trying to play file ' + wav_fn)
                 wf = wave.open(wav_fn, 'rb')
             except IOError as ioe:
                 sys.stderr.write('IOError on file ' + wav_fn + '\n' + \

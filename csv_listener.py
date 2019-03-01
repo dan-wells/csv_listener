@@ -116,12 +116,9 @@ class CsvListener(tk.Tk):
                     row['audio_path'] = wav_file 
                 else:
                     row['audio_path'] = row[self.fn_file_name]
-                # convert existing exclude column to bools
+                # convert existing exclude column to IntVar values
                 if self.fn_exclude in self.csv_header:
-                    if row[self.fn_exclude] == 'True':
-                        row[self.fn_exclude] = True
-                    else:
-                        row[self.fn_exclude] = False
+                    row[self.fn_exclude] = int(row[self.fn_exclude])
                 self.csv_rows.append(row)
         self.col_max_lens = {}
         for col in self.csv_header:
@@ -152,7 +149,7 @@ class CsvListener(tk.Tk):
             # TODO add warning about any duplicated rows: would need to have checkbutton
             # selected for every instance to have any of them excluded in the end
             if self.do_exclude:
-                exclude_var = tk.BooleanVar()
+                exclude_var = tk.IntVar()
                 self.exclude_vars[row[self.fn_file_name]] = exclude_var
                 exclude_button = tk.Checkbutton(full_row, padx=7, pady=7, relief=tk.RIDGE, variable=exclude_var, width=3)
             if self.do_comment:

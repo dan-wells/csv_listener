@@ -26,23 +26,18 @@ elif os.name == 'posix':
         'Audio playback available on Windows through standard library module winsound.\n')
 
 class CsvListener(tk.Tk):
-    def __init__(self, csv_file, csv_out=None, disp_rows=10, 
-                 fn_exclude='Exclude', fn_file_name='File Name', 
-                 audio_path=None, win_title="CSV Listener", *args, **kwargs):
+    def __init__(self, csv_file, csv_out=None, disp_rows=10, fn_exclude='Exclude', 
+                 fn_file_name='File Name', audio_path=None, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
-        self.win_title = win_title
         self.csv_file = csv_file
         self.csv_out = csv_out
         self.disp_rows = disp_rows
         self.fn_exclude = fn_exclude
         self.fn_file_name = fn_file_name
         self.audio_path = audio_path
-
         # set title on root window
-        self.title("{0} - {1}".format(self.win_title, self.csv_file))
-        # force floating window (unix only)
-        #self.attributes('-type', 'utility')
+        self.title("CSV Listener - {0}".format(self.csv_file))
 
         master_frame = tk.Frame(self)
         master_frame.pack(anchor=tk.NW)
@@ -50,60 +45,57 @@ class CsvListener(tk.Tk):
         # get various info from csv_file
         self.read_csv()
 
-        frame1 = tk.Canvas(master_frame)
-        frame1.pack(anchor=tk.NW)
+        header_frame = tk.Canvas(master_frame)
+        header_frame.pack(anchor=tk.NW)
 
-        # draw header row into frame1
-        self.draw_header(frame1)
+        # draw header row into header_frame
+        self.draw_header(header_frame)
 
-        frame2 = tk.Frame(master_frame)
-        frame2.pack(anchor=tk.NW, fill=tk.X)
+        rows_frame = tk.Frame(master_frame)
+        rows_frame.pack(anchor=tk.NW, fill=tk.X)
 
         # want to be able to scroll through many rows but always see
         # header: next bunch of tk objects is setting that up
-        vsbar = tk.Scrollbar(frame2)
+        vsbar = tk.Scrollbar(rows_frame)
         vsbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        canvas = tk.Canvas(frame2, yscrollcommand=vsbar.set)
-        canvas.pack(anchor=tk.NW, fill=tk.X)
-
-        vsbar.config(command=canvas.yview)
-
-        frame = tk.Frame(canvas)
-        frame.rowconfigure(1, weight=1)
-        frame.columnconfigure(1, weight=1)
+        scroll_canvas = tk.Canvas(rows_frame, yscrollcommand=vsbar.set)
+        scroll_canvas.pack(anchor=tk.NW, fill=tk.X)
+        vsbar.config(command=scroll_canvas.yview)
+        scroll_frame = tk.Frame(scroll_canvas)
 
         # this puts data into the frame
-        self.draw_rows(frame)
+        self.draw_rows(scroll_frame)
 
-        # this creates the scrollable view over canvas in frame
-        canvas.create_window(0, 0, anchor=tk.NW, window=frame)
-        frame.update_idletasks()
-        canvas.config(scrollregion=canvas.bbox("all"))
+        # this creates the scrollable view over scroll_frame in scroll_canvas
+        scroll_canvas.create_window(0, 0, anchor=tk.NW, window=scroll_frame)
+        scroll_frame.update()
+        scroll_canvas.config(scrollregion=scroll_canvas.bbox("all"))
         
+        # limit view to disp_rows at once
         num_rows = len(self.csv_rows)
         if num_rows > self.disp_rows:
-            canvas_height = (frame.winfo_height() / num_rows) * self.disp_rows
+            canvas_height = (scroll_frame.winfo_height() / num_rows) * self.disp_rows
         else:
-            canvas_height = frame.winfo_height()
-        canvas.configure(height=canvas_height)
+            canvas_height = scroll_frame.winfo_height()
+        scroll_canvas.configure(height=canvas_height)
 
-        ### File operations
-        frame3 = tk.Frame(master_frame)
-        frame3.pack(anchor=tk.NW, fill=tk.X)
+        # adding buttons for file operations
+        button_frame = tk.Frame(master_frame)
+        button_frame.pack(anchor=tk.NW, fill=tk.X)
 
-        save_button = tk.Button(frame3, text="Save", command=self.save_dialog)
+        save_button = tk.Button(button_frame, text="Save", command=self.save_dialog)
         save_button.pack(anchor=tk.NW, side=tk.LEFT)
 
-        save_as_button = tk.Button(frame3, text="Save As", command=lambda x=True: self.save_dialog(x))
+        save_as_button = tk.Button(button_frame, text="Save As", command=lambda x=True: self.save_dialog(x))
         save_as_button.pack(anchor=tk.NW, side=tk.LEFT)
 
         # TODO work out how to clear frames and load a new file
-        load_button = tk.Button(frame3, text="Load", command=lambda x=frame1, y=frame:self.load_file(x, y), state=tk.DISABLED)
+        load_button = tk.Button(button_frame, text="Load", 
+                command=lambda x=header_frame, y=scroll_frame:self.load_file(x, y), state=tk.DISABLED)
         load_button.pack(anchor=tk.NW, side=tk.LEFT)
         
         # make sure window shows all frames
-        master_frame.update_idletasks()
+        master_frame.update()
         self.minsize(master_frame.winfo_width(), master_frame.winfo_height())
 
     def read_csv(self):
@@ -229,11 +221,11 @@ class CsvListener(tk.Tk):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GUI tool for auditing lists of audio files.")
     parser.add_argument('csv_file', help="CSV file listing audio files to audit")
-    parser.add_argument('--csv_out', help="Output filename for modified CSV", default=None)
-    parser.add_argument('--disp_rows', help="Number of rows to show at once", default=10, type=int)
-    parser.add_argument('--fn_exclude', help="Field for exclude decisions. Will be added if not present", default='Exclude')
-    parser.add_argument('--fn_file_name', help="Field containing file name", default='File Name')
     parser.add_argument('--audio_path', help="Path to audio files, use if full path not in CSV", default=None)
+    parser.add_argument('--fn_file_name', help="Field containing audio file name. Default 'File Name'", default='File Name')
+    parser.add_argument('--fn_exclude', help="Field for exclude decisions. Will be added to output CSV if not present in input. Default 'Exclude'", default='Exclude')
+    parser.add_argument('--csv_out', help="Default output filename for modified CSV", default=None)
+    parser.add_argument('--disp_rows', help="Number of rows visible at once in scrollable field. Default 10", default=10, type=int)
     args = parser.parse_args()
     args_dict = vars(args)
 

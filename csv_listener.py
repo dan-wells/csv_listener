@@ -183,7 +183,8 @@ class CsvListener(tk.Tk):
 
     def save_dialog(self, do_save_as=False):
         if (self.csv_out is None) or (do_save_as == True):
-            self.csv_out = filedialog.asksaveasfilename(initialdir=".", title="Save to CSV file")
+            self.csv_out = filedialog.asksaveasfilename(initialdir=".", title="Save CSV file", initialfile=self.csv_file,
+                                defaultextension='.csv', filetypes=(('CSV', '*.csv'), ('All Files', '*.*')))
             if not self.csv_out:
                 self.csv_out = None
             else:

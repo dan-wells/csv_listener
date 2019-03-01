@@ -28,20 +28,21 @@ elif os.name == 'posix':
 class CsvListener(tk.Tk):
     def __init__(self, csv_file, audio_path=None, do_exclude=False, do_comment=False, 
                  fn_file_name='File Name', fn_exclude='Exclude', fn_comment='Comment',
-                 csv_out=None, disp_rows=10, *args, **kwargs):
+                 disp_rows=10, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.csv_file = csv_file
-        # set title on root window
-        self.title("CSV Listener - {0}".format(self.csv_file))
         self.audio_path = audio_path
         self.do_exclude = do_exclude
         self.do_comment = do_comment
         self.fn_file_name = fn_file_name
         self.fn_exclude = fn_exclude
         self.fn_comment = fn_comment
-        self.csv_out = csv_out
         self.disp_rows = disp_rows
+        # default saving to original file
+        self.csv_out = csv_file
+        # set title on root window
+        self.title("CSV Listener - {0}".format(self.csv_file))
 
         master_frame = tk.Frame(self)
         master_frame.pack(anchor=tk.NW)
@@ -90,7 +91,7 @@ class CsvListener(tk.Tk):
         save_button = tk.Button(button_frame, text="Save", command=self.save_dialog)
         save_button.pack(anchor=tk.NW, side=tk.LEFT)
 
-        save_as_button = tk.Button(button_frame, text="Save As", command=lambda x=True: self.save_dialog(x))
+        save_as_button = tk.Button(button_frame, text="Save As", command=lambda x=True: self.save_dialog(do_save_as=x))
         save_as_button.pack(anchor=tk.NW, side=tk.LEFT)
 
         # TODO work out how to clear frames and load a new file
@@ -189,11 +190,13 @@ class CsvListener(tk.Tk):
         pass
 
     def save_dialog(self, do_save_as=False):
-        if (self.csv_out is None) or (do_save_as == True):
-            self.csv_out = filedialog.asksaveasfilename(initialdir=".", title="Save CSV file", initialfile=self.csv_file,
-                                defaultextension='.csv', filetypes=(('CSV', '*.csv'), ('All Files', '*.*')))
+        if do_save_as:
+            self.csv_out = filedialog.asksaveasfilename(title="Save CSV file", 
+                    initialdir=os.path.dirname(self.csv_out), initialfile=os.path.basename(self.csv_out), 
+                    defaultextension='.csv', filetypes=(('CSV', '*.csv'), ('All Files', '*.*')))
+            # catch canceled save-as dialogs
             if not self.csv_out:
-                self.csv_out = None
+                self.csv_out = self.csv_file
             else:
                 self.save_file()
         elif messagebox.askokcancel(title="Save", message="Save to {0}?".format(self.csv_out)):
@@ -246,7 +249,6 @@ if __name__ == "__main__":
     parser.add_argument('--fn_file_name', help="Field containing audio file name. Default 'File Name'", default='File Name')
     parser.add_argument('--fn_exclude', help="Field for exclude decisions. Will be added to output CSV if not present in input and in exclude mode. Default 'Exclude'", default='Exclude')
     parser.add_argument('--fn_comment', help="Field for text comments. Will be added to output CSV if not present in input and in comment mode. Default 'Comment'", default='Comment')
-    parser.add_argument('--csv_out', help="Default output filename for modified CSV", default=None)
     parser.add_argument('--disp_rows', help="Number of rows visible at once in scrollable field. Default 10", default=10, type=int)
     args = parser.parse_args()
     args_dict = vars(args)

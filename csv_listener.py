@@ -173,7 +173,11 @@ class CsvListener(QWidget):
 
     def play_wav(self, wav_fn):
         if not os.path.exists(wav_fn):
-            messagebox.showwarning("Warning: File not found", "Cannot find file {0}".format(wav_fn))
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Warning: File not found")
+            msg.setText("Cannot find file {0}".format(wav_fn))
+            msg.exec_()
             return
         # windows playback through winsound in standard library
         if os.name == 'nt':

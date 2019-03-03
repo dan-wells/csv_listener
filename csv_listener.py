@@ -50,11 +50,11 @@ class CsvListener(tk.Tk):
         # get various info from csv_file
         self.read_csv()
 
-        header_frame = tk.Canvas(master_frame)
-        header_frame.pack(anchor=tk.NW)
+        #header_frame = tk.Canvas(master_frame)
+        #header_frame.pack(anchor=tk.NW)
 
         # draw header row into header_frame
-        self.draw_header(header_frame)
+        self.draw_header(master_frame)
 
         rows_frame = tk.Frame(master_frame)
         rows_frame.pack(anchor=tk.NW, fill=tk.X)
@@ -95,9 +95,9 @@ class CsvListener(tk.Tk):
         save_as_button.pack(anchor=tk.NW, side=tk.LEFT)
 
         # TODO work out how to clear frames and load a new file
-        load_button = tk.Button(button_frame, text="Load", 
-                command=lambda x=header_frame, y=scroll_frame:self.load_file(x, y), state=tk.DISABLED)
-        load_button.pack(anchor=tk.NW, side=tk.LEFT)
+        #load_button = tk.Button(button_frame, text="Load", 
+        #        command=lambda x=header_frame, y=scroll_frame:self.load_file(x, y), state=tk.ACTIVE)
+        #load_button.pack(anchor=tk.NW, side=tk.LEFT)
         
         # make sure window shows all frames
         master_frame.update()
@@ -127,16 +127,18 @@ class CsvListener(tk.Tk):
             self.col_max_lens[self.fn_comment] = 20
 
     def draw_header(self, frame):
+        header_frame = tk.Canvas(frame)
+        header_frame.pack(anchor=tk.NW)
         for i, col in enumerate(self.csv_header):
-            col_val = tk.Label(frame, width=self.col_max_lens[col], padx=7, pady=7, relief=tk.RIDGE, text=col)
+            col_val = tk.Label(header_frame, width=self.col_max_lens[col], padx=7, pady=7, relief=tk.RIDGE, text=col)
             col_val.pack(anchor=tk.NW, side=tk.LEFT)
         if (self.fn_exclude not in self.csv_header) and (self.do_exclude):
-            col_val = tk.Label(frame, padx=7, pady=7, relief=tk.RIDGE, text=self.fn_exclude)
+            col_val = tk.Label(header_frame, padx=7, pady=7, relief=tk.RIDGE, text=self.fn_exclude)
             col_val.pack(anchor=tk.NW, side=tk.LEFT)
         if (self.fn_comment not in self.csv_header) and (self.do_comment):
-            col_val = tk.Label(frame, padx=7, pady=7, relief=tk.RIDGE, text=self.fn_comment, width=20)
+            col_val = tk.Label(header_frame, padx=7, pady=7, relief=tk.RIDGE, text=self.fn_comment, width=20)
             col_val.pack(anchor=tk.NW, side=tk.LEFT)
-        col_val = tk.Label(frame, padx=7, pady=7, relief=tk.RIDGE, text='Click to play')
+        col_val = tk.Label(header_frame, padx=7, pady=7, relief=tk.RIDGE, text='Click to play')
         col_val.pack(anchor=tk.NW, side=tk.LEFT)
 
     def draw_rows(self, frame):
@@ -178,13 +180,18 @@ class CsvListener(tk.Tk):
 
     def load_file(self, header_frame, rows_frame):
         load_fn = filedialog.askopenfilename(initialdir=".", title="Select CSV file")
-        #self.csv_file = load_fn
-        #self.read_csv()
+        self.csv_file = load_fn
+        self.read_csv()
+        for frame in [header_frame, rows_frame]:
+            for child in frame.winfo_children():
+                child.destroy()
         #header_frame.destroy()
         #rows_frame.destroy()
-        #self.draw_header(header_frame)
-        #self.draw_rows(rows_frame)
-        pass
+        self.draw_header(header_frame)
+        header_frame.update()
+        self.draw_rows(rows_frame)
+        rows_frame.update()
+        #pass
 
     def save_dialog(self, do_save_as=False):
         if do_save_as:

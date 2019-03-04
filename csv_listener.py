@@ -24,7 +24,8 @@ elif os.name == 'posix':
 class CsvListener(QWidget):
     def __init__(self, csv_file, audio_path=None, do_exclude=False, do_comment=False, 
                  fn_file_name='File Name', fn_exclude='Exclude', fn_comment='Comment',
-                 disp_rows=10, *args, **kwargs):
+                 *args, **kwargs):
+                 #disp_rows=10, *args, **kwargs):
         super().__init__()
 
         self.csv_file = csv_file
@@ -34,7 +35,7 @@ class CsvListener(QWidget):
         self.fn_file_name = fn_file_name
         self.fn_exclude = fn_exclude
         self.fn_comment = fn_comment
-        self.disp_rows = disp_rows
+        #self.disp_rows = disp_rows
         # default saving to original file
         self.csv_out = csv_file
         # set title on root window
@@ -208,7 +209,7 @@ if __name__ == "__main__":
     parser.add_argument('--fn_file_name', help="Field containing audio file name. Default 'File Name'", default='File Name')
     parser.add_argument('--fn_exclude', help="Field for exclude decisions. Will be added to output CSV if not present in input and in exclude mode. Default 'Exclude'", default='Exclude')
     parser.add_argument('--fn_comment', help="Field for text comments. Will be added to output CSV if not present in input and in comment mode. Default 'Comment'", default='Comment')
-    parser.add_argument('--disp_rows', help="Number of rows visible at once in scrollable field. Default 10", default=10, type=int)
+    #parser.add_argument('--disp_rows', help="Number of rows visible at once in scrollable field. Default 10", default=10, type=int)
     args = parser.parse_args()
     args_dict = vars(args)
 

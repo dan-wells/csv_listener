@@ -29,8 +29,8 @@ elif os.name == 'posix':
 
 class CsvListener(QWidget):
     def __init__(self, csv_file, audio_path=None, do_exclude=False, do_comment=False, 
-                 fn_file_name='File Name', fn_exclude='Exclude', fn_comment='Comment',
-                 *args, **kwargs):
+                 utd=False, fn_file_name='File Name', fn_exclude='Exclude', 
+                 fn_comment='Comment', *args, **kwargs):
                  #disp_rows=10, *args, **kwargs):
         QWidget.__init__(self, *args, **kwargs)
 
@@ -38,6 +38,7 @@ class CsvListener(QWidget):
         self.audio_path = audio_path
         self.do_exclude = do_exclude
         self.do_comment = do_comment
+        self.utd = utd
         self.fn_file_name = fn_file_name
         self.fn_exclude = fn_exclude
         self.fn_comment = fn_comment
@@ -83,7 +84,10 @@ class CsvListener(QWidget):
 
     def read_csv(self):
         with open(self.csv_file) as inf:
-            reader = csv.DictReader(inf)
+            if self.utd:
+                reader = csv.DictReader(inf, delimiter=':')
+            else:
+                reader = csv.DictReader(inf)
             self.csv_header = reader.fieldnames
             if (self.do_exclude) and (self.fn_exclude not in self.csv_header):
                 self.csv_header.append(self.fn_exclude)
@@ -153,10 +157,15 @@ class CsvListener(QWidget):
     def save_dialog(self, do_save_as=False):
         if do_save_as:
             path = QFileDialog.getSaveFileName()
-            # path is a tuple (selected file path, file type e.g. 'All Files (*)')
+            # in pyqt5, path is a tuple (selected file path, file type e.g. 'All Files (*)')
+            # in pyqt4, it is just a string
             # catch canceled save-as dialogs
-            if path[0] != '':
-                self.csv_out = path[0]
+            if type(path) == tuple:
+                if path[0] != '':
+                    self.csv_out = path[0]
+                    self.save_file()
+            elif path:
+                self.csv_out = path
                 self.save_file()
             else:
                 self.csv_out = self.csv_file
@@ -168,14 +177,23 @@ class CsvListener(QWidget):
 
     def save_file(self):
         with open(self.csv_out, 'w') as outf:
-            writer = csv.DictWriter(outf, fieldnames=self.csv_header, extrasaction='ignore', lineterminator='\n')
+            if self.utd:
+                writer = csv.DictWriter(outf, delimiter=':', fieldnames=self.csv_header, 
+                                        extrasaction='ignore', lineterminator='\n')
+            else:
+                writer = csv.DictWriter(outf, fieldnames=self.csv_header, 
+                                        extrasaction='ignore', lineterminator='\n')
             writer.writeheader()
-            x_idx = self.csv_header.index(self.fn_exclude)
-            c_idx = self.csv_header.index(self.fn_comment)
+            if self.do_exclude:
+                x_idx = self.csv_header.index(self.fn_exclude)
+            if self.do_comment:
+                c_idx = self.csv_header.index(self.fn_comment)
             for i, row in enumerate(self.csv_rows):
                 # update any user-added values
-                row[self.fn_exclude] = self.exclude_vars[row[self.fn_file_name]].isChecked()
-                row[self.fn_comment] = self.comment_vars[row[self.fn_file_name]].text()
+                if self.do_exclude:
+                    row[self.fn_exclude] = self.exclude_vars[row[self.fn_file_name]].isChecked()
+                if self.do_comment:
+                    row[self.fn_comment] = self.comment_vars[row[self.fn_file_name]].text()
                 writer.writerow(row)
 
     def play_wav(self, wav_fn):
@@ -212,6 +230,7 @@ if __name__ == "__main__":
     parser.add_argument('-a', '--audio_path', help="Path to audio files, use if full path not in CSV", default=None)
     parser.add_argument('-x', '--do_exclude', help="Configure tool for excluding audio files", action='store_true')
     parser.add_argument('-c', '--do_comment', help="Configure tool for adding comments to audio files", action='store_true')
+    parser.add_argument('-u', '--utd', help="Read and write UTD files rather than CSV", action='store_true')
     parser.add_argument('--fn_file_name', help="Field containing audio file name. Default 'File Name'", default='File Name')
     parser.add_argument('--fn_exclude', help="Field for exclude decisions. Will be added to output CSV if not present in input and in exclude mode. Default 'Exclude'", default='Exclude')
     parser.add_argument('--fn_comment', help="Field for text comments. Will be added to output CSV if not present in input and in comment mode. Default 'Comment'", default='Comment')

@@ -91,7 +91,7 @@ class CsvListener(QWidget):
                 else:
                     row['audio_path'] = row[self.fn_file_name]
                 # convert existing exclude column to bools
-                if row[self.fn_exclude] is not None:
+                if (self.do_exclude) and (row[self.fn_exclude] is not None):
                     if row[self.fn_exclude] == 'True':
                         row[self.fn_exclude] = True
                     else:

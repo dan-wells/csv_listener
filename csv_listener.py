@@ -5,10 +5,16 @@ import sys
 import wave
 
 # gui toolkit
-from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QVBoxLayout, \
-    QHBoxLayout, QTableWidgetItem, QCheckBox, QPushButton, QLineEdit, \
-    QFileDialog, QMessageBox
-from PyQt5.QtCore import Qt
+try:
+    from PyQt5.QtWidgets import QApplication, QWidget, QTableWidget, QVBoxLayout, \
+        QHBoxLayout, QTableWidgetItem, QCheckBox, QPushButton, QLineEdit, \
+        QFileDialog, QMessageBox
+    from PyQt5.QtCore import Qt
+except ImportError:
+    from PyQt4.QtGui import QApplication, QWidget, QTableWidget, QVBoxLayout, \
+        QHBoxLayout, QTableWidgetItem, QCheckBox, QPushButton, QLineEdit, \
+        QFileDialog, QMessageBox
+    from PyQt4.QtCore import Qt
 
 # audio modules
 if os.name == 'nt':

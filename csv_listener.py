@@ -26,7 +26,7 @@ class CsvListener(QWidget):
                  fn_file_name='File Name', fn_exclude='Exclude', fn_comment='Comment',
                  *args, **kwargs):
                  #disp_rows=10, *args, **kwargs):
-        super().__init__()
+        QWidget.__init__(self, *args, **kwargs)
 
         self.csv_file = csv_file
         self.audio_path = audio_path
